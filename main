@@ -1,0 +1,223 @@
+from flask import Flask, request, redirect
+
+app = Flask(__name__)
+
+# Products
+products = [
+    {"id": 1, "name": "Laptop", "price": 50000},
+    {"id": 2, "name": "Mobile", "price": 20000},
+    {"id": 3, "name": "Headphones", "price": 1500}
+]
+
+# Users
+users = {
+    "admin": {"password": "admin123", "role": "admin"}
+}
+
+# Cart
+cart = []
+
+# Current User
+current_user = None
+
+
+@app.route("/")
+def home():
+
+    html = """
+    <h1>E-Commerce Web Application</h1>
+
+    <a href='/'>Home</a> |
+    <a href='/login'>Login</a> |
+    <a href='/register'>Register</a> |
+    <a href='/cart'>Cart</a> |
+    <a href='/admin'>Admin</a>
+
+    <hr>
+
+    <h2>Products</h2>
+    """
+
+    for p in products:
+        html += f"""
+        <p>
+        <b>{p['name']}</b> - ₹{p['price']}
+        <a href='/add/{p["id"]}'>Add To Cart</a>
+        </p>
+        """
+
+    return html
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+
+    global current_user
+
+    if request.method == "POST":
+
+        username = request.form["username"]
+        password = request.form["password"]
+
+        if username in users:
+
+            if users[username]["password"] == password:
+
+                current_user = username
+
+                return f"""
+                <h2>Welcome {username}</h2>
+
+                <a href='/'>Go To Store</a>
+                """
+
+        return "<h3>Invalid Login</h3>"
+
+    return """
+    <h1>Login</h1>
+
+    <form method='post'>
+
+    Username:<br>
+    <input type='text' name='username'><br><br>
+
+    Password:<br>
+    <input type='password' name='password'><br><br>
+
+    <input type='submit' value='Login'>
+
+    </form>
+
+    <br>
+
+    <a href='/register'>Create Account</a>
+    """
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+
+    if request.method == "POST":
+
+        username = request.form["username"]
+        password = request.form["password"]
+
+        users[username] = {
+            "password": password,
+            "role": "user"
+        }
+
+        return redirect("/login")
+
+    return """
+    <h1>Register</h1>
+
+    <form method='post'>
+
+    Username:<br>
+    <input type='text' name='username'><br><br>
+
+    Password:<br>
+    <input type='password' name='password'><br><br>
+
+    <input type='submit' value='Register'>
+
+    </form>
+
+    <br>
+
+    <a href='/login'>Already Have Account?</a>
+    """
+
+
+@app.route("/add/<int:id>")
+def add(id):
+
+    for p in products:
+
+        if p["id"] == id:
+            cart.append(p)
+
+    return redirect("/")
+
+
+@app.route("/cart")
+def view_cart():
+
+    html = """
+    <h1>Shopping Cart</h1>
+
+    <a href='/'>Continue Shopping</a>
+
+    <hr>
+    """
+
+    total = 0
+
+    for item in cart:
+
+        html += f"""
+        <p>
+        {item['name']} - ₹{item['price']}
+        </p>
+        """
+
+        total += item["price"]
+
+    html += f"""
+
+    <h3>Total Amount: ₹{total}</h3>
+
+    <a href='/checkout'>Checkout</a>
+    """
+
+    return html
+
+
+@app.route("/checkout")
+def checkout():
+
+    cart.clear()
+
+    return """
+    <h1>Order Placed Successfully!</h1>
+
+    <a href='/'>Back To Store</a>
+    """
+
+
+@app.route("/admin")
+def admin():
+
+    if current_user != "admin":
+
+        return """
+        <h2>Access Denied</h2>
+
+        <a href='/login'>Login As Admin</a>
+        """
+
+    html = """
+    <h1>Admin Dashboard</h1>
+
+    <h3>Product List</h3>
+    """
+
+    for p in products:
+
+        html += f"""
+        <p>
+        {p['name']} - ₹{p['price']}
+        </p>
+        """
+
+    html += """
+    <br>
+    <a href='/'>Back To Store</a>
+    """
+
+    return html
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
